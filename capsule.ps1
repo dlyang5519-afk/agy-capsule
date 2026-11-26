@@ -821,12 +821,13 @@ function New-ProjectRow([string]$convId) {
     }
 }
 
-function Rebuild-Stack($items) {
+function Rebuild-Stack([object[]]$items) {
     $rowsStack.Children.Clear()
     $script:rowMap = @{}
     $isLight = ($prefs.theme -eq "light")
+    [object[]]$list = @(if ($null -ne $items) { $items })
 
-    if ($null -eq $items -or $items.Count -eq 0) {
+    if ($list.Length -eq 0) {
         $emptyTxt = New-Object System.Windows.Controls.TextBlock
         $emptyTxt.Text = "🌙 待机 · 在反重力发送新消息后将自动分层显示"
         $emptyTxt.FontFamily = $fontMain
@@ -837,7 +838,7 @@ function Rebuild-Stack($items) {
         return
     }
 
-    for ($i = 0; $i -lt $items.Count; $i++) {
+    for ($i = 0; $i -lt $list.Length; $i++) {
         if ($i -gt 0) {
             $sep = New-Object System.Windows.Controls.Border
             $sep.Height = 1
@@ -845,7 +846,7 @@ function Rebuild-Stack($items) {
             $sep.Margin = New-Object System.Windows.Thickness(4, 2, 4, 2)
             [void]$rowsStack.Children.Add($sep)
         }
-        $cid = [string]$items[$i].conversationId
+        $cid = [string]$list[$i].conversationId
         $refs = New-ProjectRow $cid
         $script:rowMap[$cid] = $refs
         [void]$rowsStack.Children.Add($refs.RowBorder)
@@ -953,11 +954,11 @@ function Update-UI {
             } catch {}
         }
 
-        $items = if ($script:payload -and $script:payload.items) { @($script:payload.items) } else { @() }
+        [object[]]$items = @(if ($script:payload -and $null -ne $script:payload.items) { $script:payload.items })
         $hiddenCount = if ($script:payload -and $null -ne $script:payload.hiddenCount) { [int]$script:payload.hiddenCount } else { 0 }
 
         # 6. Auto-hide when all layers were dismissed ('×'); auto-reveal on new conversation/message!
-        if ($items.Count -eq 0 -and $hiddenCount -gt 0 -and $now -ge $script:forceShowUntil) {
+        if ($items.Length -eq 0 -and $hiddenCount -gt 0 -and $now -ge $script:forceShowUntil) {
             if ($window.Visibility -ne [System.Windows.Visibility]::Hidden) {
                 $window.Visibility = [System.Windows.Visibility]::Hidden
             }
@@ -980,15 +981,15 @@ function Update-UI {
             }
         }
 
-        $sig = if ($items.Count -gt 0) { ($items | ForEach-Object { [string]$_.conversationId }) -join "|" } else { "__empty__" }
+        $sig = if ($items.Length -gt 0) { ($items | ForEach-Object { [string]$_.conversationId }) -join "|" } else { "__empty__" }
 
-        if ($sig -ne $script:currentSig) {
+        if ($sig -ne $script:currentSig -or $rowsStack.Children.Count -eq 0) {
             $script:currentSig = $sig
             Rebuild-Stack $items
         }
 
         $isLight = ($prefs.theme -eq "light")
-        if ($items.Count -eq 0) {
+        if ($items.Length -eq 0) {
             if ($script:flashTicks -gt 0) {
                 $script:flashTicks--
                 $cardBorder.BorderBrush = To-Brush "#CC38BDF8"
