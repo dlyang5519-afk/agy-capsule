@@ -1,0 +1,11 @@
+# Local user runtime preferences & logs (per-machine)
+prefs.json
+last_error.log
+*.flag
+*.log
+.DS_Store
+Thumbs.db
+
+# Local one-time GitHub auth & publish helper
+_publish_helper.ps1
+一键永久授权并上传GitHub.vbs
